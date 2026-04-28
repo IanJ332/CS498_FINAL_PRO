@@ -37,11 +37,20 @@ GCP_PROJECT_ID=final-492902
 GOOGLE_APPLICATION_CREDENTIALS=path_to_your_gcp_json_key.json
 ```
 
-### 4. Running the Backend
+4. Running the Backend
 ```bash
 python app.py
 ```
 The server will start at `http://localhost:8080`.
+
+### 5. Running the Frontend
+Since the frontend is a single-page application (SPA):
+- **Option A:** Simply open `frontend/index.html` in your browser.
+- **Option B (Recommended):** Serve it using Python:
+```bash
+python -m http.server 3000 --directory frontend
+```
+Then visit `http://localhost:3000`.
 
 ## 📊 Available APIs
 - `GET /api/dashboard/portland_search`: Q1 - Fast Portland 2-day availability.
