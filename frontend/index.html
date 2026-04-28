@@ -226,115 +226,87 @@
             }
         }
 
-        function renderData(queryType, items) {
+        function renderData(endpoint, items) {
             const grid = document.getElementById('data-grid');
             const tableContainer = document.getElementById('data-table-container');
             const tableHead = document.getElementById('data-table-head');
             const tableBody = document.getElementById('data-table-body');
             const countLabel = document.getElementById('result-count');
 
+            // 1. Force Reset UI
             grid.innerHTML = '';
             tableHead.innerHTML = '';
             tableBody.innerHTML = '';
             grid.classList.add('hidden');
             tableContainer.classList.add('hidden');
+            countLabel.classList.add('hidden');
 
             if (!items || items.length === 0) {
-                grid.innerHTML = '<div class="col-span-full text-center py-10 text-gray-500 text-lg">No results found for this query.</div>';
+                grid.innerHTML = '<div class="col-span-full text-center py-20 bg-white rounded-3xl border border-dashed border-gray-300 text-gray-500 text-lg">No records found matching your criteria.</div>';
                 grid.classList.remove('hidden');
                 return;
             }
 
-            countLabel.textContent = `${items.length} Result${items.length !== 1 ? 's' : ''}`;
+            countLabel.textContent = `${items.length} Record${items.length !== 1 ? 's' : ''}`;
             countLabel.classList.remove('hidden');
 
-            if (queryType.includes('portland_search') || queryType.includes('salem_booking') || queryType.includes('amenities')) {
-                // Card Grid view for Listings
+            // 2. Identify View Type
+            const isListing = endpoint.includes('portland_search') || endpoint.includes('salem_booking') || endpoint.includes('amenities');
+            const isOccupancy = endpoint.includes('no_vacancy');
+            const isReviews = endpoint.includes('review_trends');
+            const isMarket = endpoint.includes('market_stats');
+
+            if (isListing) {
                 grid.classList.remove('hidden');
                 let cardsHtml = '';
                 items.forEach(item => {
-                    const priceRaw = item.per_night_cost || item.price;
-                    let price = 'N/A';
-                    if (priceRaw) {
-                        if (typeof priceRaw === 'string' && priceRaw.startsWith('$')) {
-                            price = priceRaw;
-                        } else if (!isNaN(parseFloat(priceRaw))) {
-                            price = `$${parseFloat(priceRaw).toFixed(2)}`;
-                        }
-                    }
-                    const rating = item.rating && !isNaN(parseFloat(item.rating)) ? parseFloat(item.rating).toFixed(2) : 'N/A';
+                    const priceVal = item.price || 0;
+                    const displayPrice = typeof priceVal === 'number' ? `$${priceVal.toFixed(2)}` : priceVal;
+                    const ratingVal = item.rating || 0;
+                    
                     cardsHtml += `
-                        <div class="bg-white rounded-2xl p-5 border border-gray-200 hover:shadow-lg transition-shadow duration-300 flex flex-col group">
+                        <div class="bg-white rounded-2xl p-5 border border-gray-200 hover:shadow-xl transition-all duration-300 flex flex-col group transform hover:-translate-y-1">
                             <div class="flex-1">
-                                <h4 class="font-bold text-lg text-gray-900 mb-1 leading-tight line-clamp-2 group-hover:text-airbnb transition-colors">${item.name || 'Unknown'}</h4>
-                                <p class="text-sm text-gray-500 mb-3">${item.neighborhood || 'Unknown Location'} &bull; ${item.room_type || 'Unknown Type'}</p>
+                                <h4 class="font-bold text-lg text-gray-900 mb-1 leading-tight line-clamp-2 group-hover:text-airbnb transition-colors">${item.name || 'Airbnb Listing'}</h4>
+                                <p class="text-sm text-gray-500 mb-3">${item.neighborhood || 'Area'} &bull; ${item.room_type || 'Entire Place'}</p>
                             </div>
                             <div class="mt-4 pt-4 border-t border-gray-100 flex justify-between items-end">
-                                <div>
-                                    <span class="text-xs text-gray-500 font-medium bg-gray-100 px-2 py-1 rounded-md">Guests: ${item.accommodates || 'N/A'}</span>
-                                </div>
+                                <div><span class="text-xs text-gray-500 font-bold bg-gray-100 px-2 py-1 rounded-md">Guests: ${item.accommodates || '2'}</span></div>
                                 <div class="text-right">
-                                    <span class="text-sm font-bold text-airbnb mr-2">★ ${rating}</span>
-                                    <span class="font-bold text-gray-900 text-lg">${price}</span> <span class="text-xs text-gray-500">/ night</span>
+                                    <span class="text-sm font-bold text-airbnb mr-2">★ ${ratingVal.toFixed(2)}</span>
+                                    <span class="font-bold text-gray-900 text-lg">${displayPrice}</span> <span class="text-xs text-gray-500">/ night</span>
                                 </div>
                             </div>
-                        </div>
-                    `;
+                        </div>`;
+                });
                 grid.innerHTML = cardsHtml;
-            } else if (queryType.includes('no_vacancy')) {
-                // Table for Hot Neighborhoods
+            } else if (isOccupancy) {
                 tableContainer.classList.remove('hidden');
-                tableHead.innerHTML = `<tr>
-                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Neighborhood</th>
-                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Booked Nights (Mar 2026)</th>
-                </tr>`;
-                let rowsHtml = '';
-                items.forEach((item, index) => {
-                    const rowClass = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
-                    rowsHtml += `<tr class="${rowClass} hover:bg-rose-50 transition-colors">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">${item.neighborhood}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-airbnb text-right">${item.booked_count}</td>
-                    </tr>`;
-                });
-                tableBody.innerHTML = rowsHtml;
-            } else if (queryType.includes('review_trends')) {
-                // Table for Review Trends
+                tableHead.innerHTML = `<tr class="bg-gray-50 text-gray-500 text-xs font-bold uppercase"><th class="px-6 py-4 text-left">Neighborhood</th><th class="px-6 py-4 text-right">Booked Nights (Mar '26)</th></tr>`;
+                tableBody.innerHTML = items.map((item, i) => `
+                    <tr class="${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-rose-50 transition-colors border-b border-gray-100">
+                        <td class="px-6 py-4 text-sm font-semibold text-gray-900">${item.neighborhood || 'Unknown'}</td>
+                        <td class="px-6 py-4 text-right text-sm font-bold text-airbnb">${item.booked_count || 0}</td>
+                    </tr>`).join('');
+            } else if (isReviews) {
                 tableContainer.classList.remove('hidden');
-                tableHead.innerHTML = `<tr>
-                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">City</th>
-                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Year</th>
-                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Review Count</th>
-                </tr>`;
-                let rowsHtml = '';
-                items.forEach((item, index) => {
-                    const rowClass = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
-                    rowsHtml += `<tr class="${rowClass} hover:bg-rose-50 transition-colors">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">${item.city || 'N/A'}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">${item.year}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-airbnb text-right">${item.review_count}</td>
-                    </tr>`;
-                });
-                tableBody.innerHTML = rowsHtml;
-            } else if (queryType.includes('market_stats')) {
-                // BigQuery Results Table (Market Stats)
+                tableHead.innerHTML = `<tr class="bg-gray-50 text-gray-500 text-xs font-bold uppercase"><th class="px-6 py-4 text-left">City</th><th class="px-6 py-4 text-left">Year</th><th class="px-6 py-4 text-right">Total Reviews</th></tr>`;
+                tableBody.innerHTML = items.map((item, i) => `
+                    <tr class="${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-rose-50 transition-colors border-b border-gray-100">
+                        <td class="px-6 py-4 text-sm font-semibold text-gray-900">${item.city || 'Unknown'}</td>
+                        <td class="px-6 py-4 text-sm text-gray-600">${item.year || 'N/A'}</td>
+                        <td class="px-6 py-4 text-right text-sm font-extrabold text-airbnb">${(item.review_count || 0).toLocaleString()}</td>
+                    </tr>`).join('');
+            } else if (isMarket) {
                 tableContainer.classList.remove('hidden');
-                tableHead.innerHTML = `<tr>
-                    <th class="px-6 py-4 text-left text-xs font-bold text-indigo-500 uppercase tracking-wider">City</th>
-                    <th class="px-6 py-4 text-left text-xs font-bold text-indigo-500 uppercase tracking-wider">Neighborhood</th>
-                    <th class="px-6 py-4 text-left text-xs font-bold text-indigo-500 uppercase tracking-wider text-right">Total Listings</th>
-                    <th class="px-6 py-4 text-left text-xs font-bold text-indigo-500 uppercase tracking-wider text-right">Avg Price</th>
-                </tr>`;
-                let rowsHtml = '';
-                items.forEach((item, index) => {
-                    const rowClass = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
-                    rowsHtml += `<tr class="${rowClass} hover:bg-indigo-50 transition-colors">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">${item.city || 'Unknown'}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">${item.neighborhood || 'Unknown'}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-indigo-600 text-right">${item.total_listings.toLocaleString()}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 text-right">$${item.avg_price}</td>
-                    </tr>`;
-                });
-                tableBody.innerHTML = rowsHtml;
+                tableHead.innerHTML = `<tr class="bg-indigo-50 text-indigo-600 text-xs font-bold uppercase"><th class="px-6 py-4 text-left">City</th><th class="px-6 py-4 text-left">Neighborhood</th><th class="px-6 py-4 text-right">Listings</th><th class="px-6 py-4 text-right">Avg Price</th></tr>`;
+                tableBody.innerHTML = items.map((item, i) => `
+                    <tr class="${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-indigo-50 transition-colors border-b border-indigo-50">
+                        <td class="px-6 py-4 text-sm font-medium text-gray-600">${item.city || 'Unknown'}</td>
+                        <td class="px-6 py-4 text-sm font-bold text-gray-900">${item.neighborhood || 'Unknown'}</td>
+                        <td class="px-6 py-4 text-right text-sm font-bold text-indigo-600">${(item.total_listings || 0).toLocaleString()}</td>
+                        <td class="px-6 py-4 text-right text-sm font-extrabold text-gray-900">$${(item.avg_price || 0).toFixed(2)}</td>
+                    </tr>`).join('');
             }
         }
     </script>

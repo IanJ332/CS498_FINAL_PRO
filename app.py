@@ -125,14 +125,16 @@ def listing_details(listing_id):
 def review_trends():
     """Q5: Historical Review Trends (Joined with Listings to get City)"""
     query = f"""
-        SELECT l.city, EXTRACT(YEAR FROM SAFE.PARSE_DATE('%Y-%m-%d', r.date)) as year, COUNT(*) as review_count
+        SELECT 
+            COALESCE(l.city, 'Unknown') as city, 
+            COALESCE(EXTRACT(YEAR FROM SAFE.PARSE_DATE('%Y-%m-%d', r.date)), 0) as year, 
+            COUNT(*) as review_count
         FROM `{PROJECT_ID}.{BQ_DATASET}.reviews` r
         JOIN `{PROJECT_ID}.{BQ_DATASET}.listings` l ON r.listing_id = l.id
         WHERE EXTRACT(MONTH FROM SAFE.PARSE_DATE('%Y-%m-%d', r.date)) = 12
-        GROUP BY l.city, year
-        HAVING year IS NOT NULL
-        ORDER BY l.city, year DESC
-        LIMIT 20
+        GROUP BY city, year
+        ORDER BY city, year DESC
+        LIMIT 50
     """
     try:
         results = [dict(row) for row in bq_client.query(query)]
@@ -145,17 +147,14 @@ def market_stats():
     """Q6: Market Analysis by Neighborhood"""
     query = f"""
         SELECT 
-            city, 
-            neighbourhood_cleansed as neighborhood, 
+            COALESCE(city, 'Unknown') as city, 
+            COALESCE(neighbourhood_cleansed, 'Unknown') as neighborhood, 
             COUNT(*) as total_listings,
-            ROUND(AVG(price_num), 2) as avg_price
-        FROM (
-            SELECT city, neighbourhood_cleansed, 
-                   CAST(REGEXP_REPLACE(price, r'[$,]', '') AS FLOAT64) as price_num
-            FROM `{PROJECT_ID}.{BQ_DATASET}.listings`
-        )
+            COALESCE(ROUND(AVG(SAFE_CAST(REGEXP_REPLACE(price, r'[$,]', '') AS FLOAT64)), 2), 0) as avg_price
+        FROM `{PROJECT_ID}.{BQ_DATASET}.listings`
         GROUP BY city, neighborhood
         ORDER BY total_listings DESC
+        LIMIT 50
     """
     try:
         results = [dict(row) for row in bq_client.query(query)]
