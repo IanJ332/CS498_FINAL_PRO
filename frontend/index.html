@@ -199,8 +199,8 @@
 
             const queryTitles = {
                 1: "Portland 2-Day Search (Feb 23-24)",
-                2: "Hot Neighborhoods (Highest Occupancy)",
-                3: "Salem 3-Night Booking",
+                2: "Portland: Most Competitive Markets",
+                3: "Salem: Top-Rated Listings",
                 4: "High-Rated with Wifi",
                 5: "Historical Review Growth (BQ)",
                 'bq': "BigQuery: Full Dataset Stats (Raw Listings)"
@@ -282,7 +282,7 @@
                 grid.innerHTML = cardsHtml;
             } else if (isOccupancy) {
                 tableContainer.classList.remove('hidden');
-                tableHead.innerHTML = `<tr class="bg-gray-50 text-gray-500 text-xs font-bold uppercase"><th class="px-6 py-4 text-left">Neighborhood</th><th class="px-6 py-4 text-right">Booked Nights (Mar '26)</th></tr>`;
+                tableHead.innerHTML = `<tr class="bg-gray-50 text-gray-500 text-xs font-bold uppercase"><th class="px-6 py-4 text-left">Neighborhood</th><th class="px-6 py-4 text-right">Total Listings</th></tr>`;
                 tableBody.innerHTML = items.map((item, i) => `
                     <tr class="${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-rose-50 transition-colors border-b border-gray-100">
                         <td class="px-6 py-4 text-sm font-semibold text-gray-900">${item.neighborhood || 'Unknown'}</td>
@@ -310,7 +310,5 @@
             }
         }
     </script>
-</body>
-</html>
 </body>
 </html>
