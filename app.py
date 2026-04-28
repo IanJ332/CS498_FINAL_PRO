@@ -72,6 +72,21 @@ def dashboard_amenities():
     ]
     return jsonify(list(db.listings.aggregate(pipeline)))
 
+@app.route('/api/dashboard/no_vacancy')
+def dashboard_no_vacancy():
+    """Optimized: Show Top 5 Neighborhoods with HIGHEST Booking Occupancy for March 2026"""
+    pipeline = [
+        {"$match": {"date": {"$regex": "^2026-03"}, "available": False}},
+        {"$group": {"_id": "$listing_id", "booked_days": {"$sum": 1}}},
+        {"$lookup": {"from": "listings", "localField": "_id", "foreignField": "id", "as": "details"}},
+        {"$unwind": "$details"},
+        {"$group": {"_id": "$details.neighbourhood_cleansed", "total_booked": {"$sum": "$booked_days"}}},
+        {"$sort": {"total_booked": -1}},
+        {"$limit": 10},
+        {"$project": {"_id": 0, "neighborhood": "$_id", "booked_count": "$total_booked"}}
+    ]
+    return jsonify(list(db.calendar.aggregate(pipeline)))
+
 @app.route('/api/dashboard/salem_booking')
 def dashboard_salem():
     """Q3: Salem 3-Night Booking (March 1-3, 2026)"""
@@ -108,13 +123,16 @@ def listing_details(listing_id):
 
 @app.route('/api/analysis/review_trends')
 def review_trends():
-    """Q5: Historical Review Trends (December) - BigQuery is much better for this"""
+    """Q5: Historical Review Trends (Joined with Listings to get City)"""
     query = f"""
-        SELECT city, EXTRACT(YEAR FROM CAST(date AS DATE)) as year, COUNT(*) as review_count
-        FROM `{PROJECT_ID}.{BQ_DATASET}.reviews`
-        WHERE EXTRACT(MONTH FROM CAST(date AS DATE)) = 12
-        GROUP BY city, year
-        ORDER BY city, year DESC
+        SELECT l.city, EXTRACT(YEAR FROM SAFE.PARSE_DATE('%Y-%m-%d', r.date)) as year, COUNT(*) as review_count
+        FROM `{PROJECT_ID}.{BQ_DATASET}.reviews` r
+        JOIN `{PROJECT_ID}.{BQ_DATASET}.listings` l ON r.listing_id = l.id
+        WHERE EXTRACT(MONTH FROM SAFE.PARSE_DATE('%Y-%m-%d', r.date)) = 12
+        GROUP BY l.city, year
+        HAVING year IS NOT NULL
+        ORDER BY l.city, year DESC
+        LIMIT 20
     """
     try:
         results = [dict(row) for row in bq_client.query(query)]
