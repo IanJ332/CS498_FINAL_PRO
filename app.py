@@ -48,7 +48,8 @@ def dashboard_portland():
             "_id": 0, "id": "$_id", "name": "$info.name", 
             "neighborhood": "$info.neighbourhood_cleansed", 
             "room_type": "$info.room_type", "accommodates": "$info.accommodates", 
-            "price": 1, "rating": "$info.review_scores_rating"
+            "price": {"$ifNull": ["$price", 0]}, 
+            "rating": {"$ifNull": ["$info.review_scores_rating", 0]}
         }},
         {"$sort": {"rating": -1}},
         {"$limit": 50}
@@ -60,11 +61,35 @@ def dashboard_amenities():
     """Q4: Wifi + High Rating Search"""
     pipeline = [
         {"$match": {"city": "Portland", "review_scores_rating": {"$gte": 4.8}, "amenities": {"$regex": "Wifi", "$options": "i"}}},
-        {"$project": {"_id": 0, "id": 1, "name": 1, "neighborhood": "$neighbourhood_cleansed", "room_type": 1, "rating": "$review_scores_rating"}},
+        {"$project": {
+            "_id": 0, "id": 1, "name": 1, 
+            "neighborhood": "$neighbourhood_cleansed", 
+            "room_type": 1, 
+            "rating": {"$ifNull": ["$review_scores_rating", 0]}
+        }},
         {"$sort": {"rating": -1}},
         {"$limit": 50}
     ]
     return jsonify(list(db.listings.aggregate(pipeline)))
+
+@app.route('/api/dashboard/salem_booking')
+def dashboard_salem():
+    """Q3: Salem 3-Night Booking (March 1-3, 2026)"""
+    pipeline = [
+        {"$match": {"date": {"$in": ["2026-03-01", "2026-03-02", "2026-03-03"]}, "available": True}},
+        {"$group": {"_id": "$listing_id", "avg_price": {"$avg": "$price"}, "days": {"$sum": 1}}},
+        {"$match": {"days": 3}},
+        {"$lookup": {"from": "listings", "localField": "_id", "foreignField": "id", "as": "details"}},
+        {"$unwind": "$details"},
+        {"$match": {"details.city": "Salem"}},
+        {"$project": {
+            "_id": 0, "name": "$details.name", 
+            "neighborhood": "$details.neighbourhood_cleansed", 
+            "room_type": "$details.room_type", "accommodates": "$details.accommodates",
+            "price": {"$ifNull": ["$avg_price", 0]}
+        }}
+    ]
+    return jsonify(list(db.calendar.aggregate(pipeline)))
 
 # --- Deep Dive API (BigQuery - Cold Data) ---
 
