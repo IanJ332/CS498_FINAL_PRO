@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+ENV/
+
+# Data & Large Files
+raw_data/
+*.csv.gz
+*.txt
+scratch/
+
+# Secrets
+.env
+*.json
+!final-492902-b95cff0ffa0e.json.template
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
