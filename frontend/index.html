@@ -220,7 +220,7 @@
                 }
                 
                 const data = await res.json();
-                renderData('ai_search', data);
+                renderData(data.engine === 'bigquery' ? 'market_stats' : 'ai_search', data.data);
                 
                 document.getElementById('loader').classList.add('hidden');
                 document.getElementById('results-container').classList.remove('hidden');

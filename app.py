@@ -5,16 +5,19 @@ from pymongo import MongoClient
 from google.cloud import bigquery
 from google.oauth2 import service_account
 from dotenv import load_dotenv
-from ai_service import get_mql_from_ai
+from ai_service import get_query_from_ai
+from bson import ObjectId
 
 load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
 
-# ── FIX: Custom JSON encoder to handle NaN/Infinity from BigQuery ──
+# ── FIX: Custom JSON encoder to handle NaN/Infinity and MongoDB ObjectId ──
 class SafeJSONEncoder(json.JSONEncoder):
     def default(self, obj):
+        if isinstance(obj, ObjectId):
+            return str(obj)
         return super().default(obj)
     
     def encode(self, o):
@@ -29,7 +32,7 @@ class SafeJSONEncoder(json.JSONEncoder):
             return [self._sanitize(v) for v in obj]
         return obj
 
-app.json_encoder = SafeJSONEncoder
+app.json.cls = SafeJSONEncoder
 
 # Also patch jsonify responses via after_request to catch any edge cases
 @app.after_request
@@ -219,26 +222,35 @@ def market_stats():
 
 @app.route('/api/ai_query', methods=['POST'])
 def ai_query():
-    """Natural Language to MQL Query powered by NVIDIA NIM"""
+    """AI Query powered by NVIDIA NIM - Intelligently routes to Mongo or BigQuery"""
     user_input = request.json.get('prompt')
     if not user_input:
         return jsonify({"error": "No prompt provided"}), 400
     
-    pipeline = get_mql_from_ai(user_input)
-    if not pipeline:
-        return jsonify({"error": "Failed to generate query. Please try a clearer description."}), 500
+    ai_decision = get_query_from_ai(user_input)
+    if not ai_decision:
+        return jsonify({"error": "AI failed to interpret the query. Try a clearer description."}), 500
+    
+    engine = ai_decision.get("engine")
+    query = ai_decision.get("query")
     
     try:
-        # Determine which collection to start with
-        # Most NL queries about attributes start with 'listings'
-        # Queries about dates start with 'calendar'
-        is_calendar_query = any(word in user_input.lower() for word in ['available', 'date', 'february', 'march', 'night', 'stay'])
-        collection = db.calendar if is_calendar_query else db.listings
-        
-        results = list(collection.aggregate(pipeline))
-        return jsonify(results)
+        if engine == "bigquery":
+            # Execute on GCP
+            results = [dict(row) for row in bq_client.query(query)]
+            return jsonify({"engine": "bigquery", "data": results})
+        else:
+            # Execute on MongoDB
+            target = ai_decision.get("target", "listings")
+            collection = db.calendar if target == "calendar" else db.listings
+            results = list(collection.aggregate(query))
+            return jsonify({"engine": "mongo", "data": results})
+            
     except Exception as e:
-        return jsonify({"error": f"MQL Execution Error: {str(e)}", "pipeline": pipeline}), 500
+        return jsonify({
+            "error": f"Execution Error ({engine}): {str(e)}", 
+            "decision": ai_decision
+        }), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
