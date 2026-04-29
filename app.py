@@ -5,6 +5,7 @@ from pymongo import MongoClient
 from google.cloud import bigquery
 from google.oauth2 import service_account
 from dotenv import load_dotenv
+from ai_service import get_mql_from_ai
 
 load_dotenv()
 
@@ -215,6 +216,29 @@ def market_stats():
         return jsonify(results)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route('/api/ai_query', methods=['POST'])
+def ai_query():
+    """Natural Language to MQL Query powered by NVIDIA NIM"""
+    user_input = request.json.get('prompt')
+    if not user_input:
+        return jsonify({"error": "No prompt provided"}), 400
+    
+    pipeline = get_mql_from_ai(user_input)
+    if not pipeline:
+        return jsonify({"error": "Failed to generate query. Please try a clearer description."}), 500
+    
+    try:
+        # Determine which collection to start with
+        # Most NL queries about attributes start with 'listings'
+        # Queries about dates start with 'calendar'
+        is_calendar_query = any(word in user_input.lower() for word in ['available', 'date', 'february', 'march', 'night', 'stay'])
+        collection = db.calendar if is_calendar_query else db.listings
+        
+        results = list(collection.aggregate(pipeline))
+        return jsonify(results)
+    except Exception as e:
+        return jsonify({"error": f"MQL Execution Error: {str(e)}", "pipeline": pipeline}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))

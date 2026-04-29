@@ -70,6 +70,22 @@
                 <span id="status-text" class="text-sm font-medium text-gray-600">Checking connection...</span>
             </div>
         </header>
+        
+        <!-- AI Magic Search Bar -->
+        <div class="px-8 pt-6">
+            <div class="relative group">
+                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <svg class="h-5 w-5 text-airbnb group-focus-within:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                </div>
+                <input type="text" id="ai-input" 
+                    onkeypress="if(event.key === 'Enter') aiSearch()"
+                    placeholder="Ask AI: 'Show me cheap entire homes in Portland with Wifi' or 'Luxury stays in LA'..." 
+                    class="block w-full pl-11 pr-24 py-4 bg-white border border-gray-200 rounded-2xl leading-5 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-airbnb focus:border-transparent shadow-sm transition-all text-lg">
+                <div class="absolute inset-y-0 right-0 flex items-center pr-2">
+                    <button onclick="aiSearch()" class="px-6 py-2 bg-airbnb text-white rounded-xl text-sm font-bold hover:bg-airbnbDark transition-colors shadow-sm">Search</button>
+                </div>
+            </div>
+        </div>
 
         <!-- Content Area -->
         <div class="flex-1 p-8 overflow-y-auto">
@@ -180,6 +196,41 @@
         checkHealth();
         setInterval(checkHealth, 5000);
 
+        async function aiSearch() {
+            const prompt = document.getElementById('ai-input').value;
+            if (!prompt) return;
+
+            // UI Updates
+            document.getElementById('welcome-message').classList.add('hidden');
+            document.getElementById('error-container').classList.add('hidden');
+            document.getElementById('results-container').classList.add('hidden');
+            document.getElementById('loader').classList.remove('hidden');
+            document.getElementById('query-title').textContent = `AI Magic: "${prompt}"`;
+
+            try {
+                const res = await fetch(`${API_BASE}/api/ai_query`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt })
+                });
+                
+                if (!res.ok) {
+                    const errData = await res.json();
+                    throw new Error(errData.error || `HTTP ${res.status}`);
+                }
+                
+                const data = await res.json();
+                renderData('ai_search', data);
+                
+                document.getElementById('loader').classList.add('hidden');
+                document.getElementById('results-container').classList.remove('hidden');
+            } catch (err) {
+                document.getElementById('loader').classList.add('hidden');
+                document.getElementById('error-container').classList.remove('hidden');
+                document.getElementById('error-message').textContent = `AI Magic failed: ${err.message}`;
+            }
+        }
+
         async function fetchData(queryId) {
             let endpoint;
             if (queryId === 'bq') {
@@ -251,7 +302,7 @@
             countLabel.classList.remove('hidden');
 
             // 2. Identify View Type
-            const isListing = endpoint.includes('portland_search') || endpoint.includes('salem_booking') || endpoint.includes('amenities');
+            const isListing = endpoint.includes('portland_search') || endpoint.includes('salem_booking') || endpoint.includes('amenities') || endpoint === 'ai_search';
             const isOccupancy = endpoint.includes('no_vacancy');
             const isReviews = endpoint.includes('review_trends');
             const isMarket = endpoint.includes('market_stats');
