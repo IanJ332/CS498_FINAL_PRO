@@ -29,37 +29,34 @@ source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 3. Environment Variables (.env)
-Create a `.env` file in the root directory with the following content:
-```env
-MONGO_URI=your_mongodb_connection_string
-GCP_PROJECT_ID=final-492902
-GOOGLE_APPLICATION_CREDENTIALS=path_to_your_gcp_json_key.json
-```
+### 3. Configuration & Credentials
+1.  **Environment Variables**: Copy `.env.example` to `.env` and fill in your keys.
+    ```bash
+    cp .env.example .env
+    ```
+2.  **GCP Credentials**: Place your Google Cloud Service Account JSON key in the root directory and name it: `final-492902-b95cff0ffa0e.json`.
 
-4. Running the Backend
-```bash
-python app.py
-```
-The server will start at `http://localhost:8080`.
+### 4. Running the Project
+1.  **Start Backend**:
+    ```bash
+    python app.py
+    ```
+    The server will start at `http://localhost:8080`.
 
-### 5. Running the Frontend
-Since the frontend is a single-page application (SPA):
-- **Option A:** Simply open `frontend/index.html` in your browser.
-- **Option B (Recommended):** Serve it using Python:
-```bash
-python -m http.server 3000 --directory frontend
-```
-Then visit `http://localhost:3000`.
+2.  **Start Frontend**:
+    Open `frontend/index.html` directly, or serve it:
+    ```bash
+    python -m http.server 3000 --directory frontend
+    ```
 
-## 📊 Available APIs
-- `GET /api/dashboard/portland_search`: Q1 - Fast Portland 2-day availability.
-- `GET /api/dashboard/amenities`: Q4 - High-rated listings with Wifi.
-- `GET /api/analysis/review_trends`: Q5 - Historical review growth (via BigQuery).
-- `GET /api/analysis/market_stats`: Q6 - City-wide average prices (via BigQuery).
+## 🪄 AI Magic Search
+The dashboard now features an **AI Intelligent Search** bar. 
+- It uses **NVIDIA NIM (Llama 3.1 8B)** to interpret natural language.
+- It automatically decides whether to query **MongoDB** (for specific, real-time listing info) or **BigQuery** (for massive historical trends).
 
 ## 📄 Documentation
-- See `Current_DB_Status_Report.md` for the full query audit and data validation samples.
+- See `Current_DB_fix_Report.md` for the latest database query audit results and data validation.
+- See `presentation_prompts.md` for recommended AI queries to use during the demo.
 
 ## 👥 Contributors
-- IanJ332
+- IanJ332 & Team
