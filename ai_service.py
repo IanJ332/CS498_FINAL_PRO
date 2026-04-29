@@ -21,6 +21,11 @@ def get_query_from_ai(user_input):
     SCHEMA CONTEXT:
     1. MongoDB ('listings' & 'calendar'): Best for specific searches, availability, ratings, and listing attributes.
        - 'listings' fields: name, city, neighbourhood_cleansed, room_type, price, review_scores_rating, amenities (string).
+       - ROOM_TYPE MAPPING: 
+         * 'apartment', 'house', 'studio', 'full home' -> 'Entire home/apt'
+         * 'private room', 'single room' -> 'Private room'
+         * 'shared room', 'hostel' -> 'Shared room'
+         * 'hotel' -> 'Hotel room'
        - 'calendar' fields: listing_id, date, available (bool), price.
     2. BigQuery (Full paths: 'final-492902.airbnb_raw.listings' & 'final-492902.airbnb_raw.reviews'): Best for historical trends, year-over-year growth, and massive city-level stats.
        - Use 'final-492902.airbnb_raw.listings' for city stats and prices. (Note: Use SAFE_CAST(REGEXP_REPLACE(price, r'[$,]', '') AS FLOAT64) for average price calculations).
