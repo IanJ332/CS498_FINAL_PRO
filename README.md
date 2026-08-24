@@ -1,4 +1,4 @@
-# Airbnb Data Pipeline & Analytics (CS498 Final Project)
+# Airbnb Data Pipeline & Analytics
 
 This project implements a high-performance, dual-source data pipeline for Airbnb market analysis across four US cities (Portland, Salem, Los Angeles, San Diego).
 
