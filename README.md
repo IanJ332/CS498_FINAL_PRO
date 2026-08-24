@@ -1,4 +1,4 @@
-# Airbnb Data Pipeline & Analytics
+# Airbnb Data Pipeline & Analytics (Hot–Cold Data Architecture)
 
 This project implements a high-performance, dual-source data pipeline for Airbnb market analysis across four US cities (Portland, Salem, Los Angeles, San Diego).
 
